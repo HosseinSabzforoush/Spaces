@@ -3,9 +3,9 @@ import { Activity, LayoutGrid, Settings } from 'lucide-react'
 
 function Sidebar() {
   return (
-    <div className='min-w-52 w-1/5 items-center bg-sidebar px-3 py-8 flex flex-col gap-15'>
-      <h1 className='text-text-primary font-extrabold text-3xl'>Spaces</h1>
-      <div className='text-text-secondary font-semibold flex flex-col gap-2 w-full items-center'>
+    <div className='flex flex-col items-center w-1/5 px-3 py-8 min-w-52 bg-sidebar gap-15'>
+      <h1 className='text-4xl font-extrabold text-text-primary'>Spaces</h1>
+      <div className='flex flex-col items-center w-full gap-2 font-semibold text-text-secondary'>
         <SidebarItem to='workspaces' icon={LayoutGrid} label='Workspace' />
         <SidebarItem to='settings' icon={Settings} label='Settings' />
         <SidebarItem to='activity' icon={Activity} label='Activity' />
