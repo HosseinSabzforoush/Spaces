@@ -10,8 +10,9 @@ function MainLayout() {
 
       {/* Right box */}
       <div className='w-full bg-app text-text-primary '>
-        {/* TopBar */}
+
         <Topbar />
+        
         {/* Main Page*/}
         <main>
           <div>
