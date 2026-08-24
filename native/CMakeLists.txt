@@ -16,11 +16,14 @@ FetchContent_Declare(
     GIT_TAG 0.12.0)
 FetchContent_MakeAvailable(webview)
 
-add_executable(Spaces WIN32
+add_executable(Spaces
     src/app/main.cpp
     src/win32/Win32Handle.cpp
     src/win32/RegistryKey.cpp
+    src/core/AppDiscoveryService.cpp
+    src/win32/EnvExpander.cpp
 )
 
 target_include_directories(Spaces PRIVATE third_party/nlohmann)
 target_link_libraries(Spaces PRIVATE webview::core advapi32)
+target_link_options(Spaces PRIVATE -static-libgcc -static-libstdc++ -static -lpthread)
