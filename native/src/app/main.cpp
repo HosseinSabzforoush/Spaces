@@ -3,11 +3,16 @@
 #include "../core/AppDiscoveryService.h"
 
 int main() {
-    std::vector<AppInfo> apps = AppDiscoveryService::discoverFromAppPaths();
-
-    std::wcout << L"Found " << apps.size() << L" apps via App Paths:\n\n";
-    for (const auto& app : apps) {
+    std::vector<AppInfo> appPathsApps = AppDiscoveryService::discoverFromAppPaths();
+    std::wcout << L"=== App Paths: " << appPathsApps.size() << L" apps ===\n";
+    for (const auto& app : appPathsApps) {
         std::wcout << L"  " << app.displayName << L"  ->  " << app.exePath << L"\n";
+    }
+
+    std::vector<AppInfo> uninstallApps = AppDiscoveryService::discoverFromUninstallKeys();
+    std::wcout << L"\n=== Uninstall Keys: " << uninstallApps.size() << L" apps ===\n";
+    for (const auto& app : uninstallApps) {
+        std::wcout << L"  " << app.displayName << L"\n";
     }
 
     return 0;
