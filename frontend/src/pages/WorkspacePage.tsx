@@ -1,3 +1,4 @@
+import WorkspaceDetails from '@/features/workspaces/components/WorkspaceDetails';
 import { Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom"
 
@@ -28,9 +29,7 @@ function WorkspacePage() {
       {/* body */}
       <div className="flex *:h-full gap-3 grow *:bg-surface-elevated *:rounded-md *:border-border *:border">
         {/* left frame */}
-        <div className='w-2/5'>
-
-        </div>
+        <WorkspaceDetails />
 
         {/* right frame */}
         <div className='w-3/5'>
