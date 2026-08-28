@@ -1,5 +1,6 @@
 #pragma once
 #include "AppInfo.h"
+#include <string>
 
 #include <vector>
 
@@ -12,4 +13,5 @@ public:
 
 private:
     static std::wstring buildSubkeyPath(const std::wstring &rootPath, const std::wstring &subkeyPath);    
+    static std::vector<std::wstring> scanFolderForShortcuts(const std::wstring &rootPath);
 };

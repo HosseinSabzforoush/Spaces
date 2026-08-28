@@ -1,6 +1,14 @@
 #include "AppDiscoveryService.h"
 #include "../win32/RegistryKey.h"
 #include "../win32/EnvExpander.h"
+#include "../win32/ComInitializer.h"
+#include "../win32/ShortcutResolver.h"
+
+#include <filesystem>
+#include <cwctype>
+#include <algorithm>
+
+namespace fs = std::filesystem;
 
 std::wstring AppDiscoveryService::buildSubkeyPath(const std::wstring &rootPath, const std::wstring &subkeyPath){
     std::wstring fullPath = rootPath + L"\\" + subkeyPath;
@@ -21,7 +29,7 @@ std::vector<AppInfo> AppDiscoveryService::discoverFromAppPaths(){
         RegistryKey subKey(HKEY_LOCAL_MACHINE, subPath);
         if(subKey){
             std::optional<std::wstring> value = subKey.string_read(L"");
-            if(value.has_value()){
+            if(value.has_value() && !value.value().empty()){
                 std::wstring expanded_value = expandEnvironmentString(value.value());
                 AppInfo app{L"0", name, expanded_value, AppSource::Registry};
                 appsList.push_back(app);
@@ -52,4 +60,66 @@ std::vector<AppInfo> AppDiscoveryService::discoverFromUninstallKeys(){
         }
     }
     return appsList;
+}
+
+std::vector<AppInfo> AppDiscoveryService::discoverFromShortcuts(){
+
+    std::vector<AppInfo> appsList = {};
+
+    const std::wstring appDataRoot = L"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs";
+    const std::wstring programDataRoot = L"%ProgramData%\\Microsoft\\Windows\\Start Menu\\Programs";
+    std::vector<std::wstring> shortcuts = {};
+
+    ComInitializer com;
+    if(!com){
+        return {};
+    }
+    ShortcutResolver resolver;
+    if(!resolver){
+        return {};
+    }
+    for(const auto& shortcut : scanFolderForShortcuts(expandEnvironmentString(appDataRoot))){
+        shortcuts.push_back(shortcut);
+    }
+    for(const auto& shortcut : scanFolderForShortcuts(expandEnvironmentString(programDataRoot))){
+        shortcuts.push_back(shortcut);
+    }
+
+    for(const auto& shortcut : shortcuts){
+
+        fs::path shortcutPath(shortcut);
+        std::wstring displayName = shortcutPath.stem().wstring();
+        std::optional<std::wstring> exePath = resolver.resolve(shortcut);
+        fs::path entry(exePath.value());
+        std::wstring ext = entry.extension().wstring();
+        std::transform(ext.begin(), ext.end(), ext.begin(),[](wchar_t c) { return std::towlower(c); });
+
+        if(exePath.has_value() && !exePath.value().empty() && ext == L".exe"){
+            AppInfo app{L"0", displayName, exePath.value(), AppSource::Shortcut};
+            appsList.push_back(app);
+        }
+    }
+    return appsList;
+}
+
+std::vector<std::wstring> AppDiscoveryService::scanFolderForShortcuts(const std::wstring &rootPath){
+    std::vector<std::wstring> filesList = {};
+    try
+    {
+        for(const auto& entry : fs::recursive_directory_iterator(rootPath)){
+            if(entry.is_regular_file()){
+                std::wstring ext = entry.path().extension().wstring();
+                std::transform(ext.begin(), ext.end(), ext.begin(),[](wchar_t c) { return std::towlower(c); });
+                if(ext == L".lnk"){
+                    filesList.push_back(entry.path().wstring());
+                }
+            }
+        }
+        return filesList;
+    }
+    catch(const std::filesystem::filesystem_error&)
+    {
+       return {};
+    }
+    
 }
