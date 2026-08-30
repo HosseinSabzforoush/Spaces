@@ -22,6 +22,8 @@ add_executable(Spaces
     src/win32/RegistryKey.cpp
     src/core/AppDiscoveryService.cpp
     src/win32/EnvExpander.cpp
+    src/win32/ComInitializer.cpp
+    src/win32/ShortcutResolver.cpp
 )
 
 target_include_directories(Spaces PRIVATE third_party/nlohmann)

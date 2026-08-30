@@ -15,5 +15,11 @@ int main() {
         std::wcout << L"  " << app.displayName << L"\n";
     }
 
+    std::vector<AppInfo> shortcutApps = AppDiscoveryService::discoverFromShortcuts();
+    std::wcout << L"\n=== Shortcuts: " << shortcutApps.size() << L" apps ===\n";
+    for (const auto& app : shortcutApps) {
+        std::wcout << L"  " << app.displayName << L"  ->  " << app.exePath << L"\n";
+    }
+
     return 0;
 }
