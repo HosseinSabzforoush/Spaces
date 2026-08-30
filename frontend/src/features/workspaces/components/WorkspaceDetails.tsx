@@ -28,6 +28,35 @@ export default function WorkspaceDetails() {
         {/* accent color */}
         <AccentColorPicker />
       </div>
+
+      {/* title */}
+      <div className="flex flex-col gap-1">
+        <span className="text-text-muted text-xs">
+          Title <span className="text-danger">*</span>
+        </span>
+        <input
+          type="text"
+          name="title"
+          id="title"
+          placeholder="Title"
+          required
+          className="w-full border-2 border-border rounded-md px-3 py-1 bg-card focus:border-border-active focus:outline hover:border-border-hover"
+        />
+      </div>
+
+      {/* desc */}
+      <div className="flex flex-col gap-1">
+        <span className="text-text-muted text-xs">
+          Description <span className="text-text-disabled">(optional)</span>
+        </span>
+        <input
+          type="text"
+          name="description"
+          id="description"
+          placeholder="Description"
+          className="w-full border-2 border-border rounded-md px-3 py-1 bg-card focus:border-border-active focus:outline hover:border-border-hover"
+        />
+      </div>
     </div>
   );
 }
