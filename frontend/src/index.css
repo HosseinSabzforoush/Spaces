@@ -94,3 +94,20 @@
       0 2px 5px -2px rgba(0, 0, 0, 0.2);
   }
 }
+
+
+@utility shadow-center {
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+@utility shadow-center-md {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+@utility shadow-center-lg {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+@utility shadow-center-xl {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+}
