@@ -1,12 +1,15 @@
 // src/app/main.cpp (TEMPORARY smoke test — replace with real webview main.cpp)
 #include <iostream>
-#include "../core/AppDiscoveryService.h"
+#include "../win32/ProcessLauncher.h"
 
 int main() {
-    std::vector<AppInfo> allApps = AppDiscoveryService::discoverAllApps();
-    std::wcout << L"=== All Apps (merged + filtered): " << allApps.size() << L" apps ===\n";
-    for (const auto& app : allApps) {
-        std::wcout << L"  " << app.displayName << L"  ->  " << app.exePath << L"\n";
+    std::wstring exePath = L"C:\\WINDOWS\\system32\\notepad.exe";
+
+    std::optional<ProcessLauncher::Result> result = ProcessLauncher::launchApp(exePath);
+    if (result.has_value()) {
+        std::wcout << L"Launched successfully. PID: " << result.value().pid << L"\n";
+    } else {
+        std::wcout << L"Failed to launch.\n";
     }
 
     return 0;
