@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* ─────────────────────────────────────────
@@ -9,7 +9,6 @@
   --color-sidebar: #111419;
   --color-background-subtle: #171b21;
 
-
   /* ─────────────────────────────────────────
      Surface / Cards
   ───────────────────────────────────────── */
@@ -17,8 +16,7 @@
   --color-card: #15191f;
   --color-card-hover: #1b2027;
   --color-card-active: #202630;
-  --color-surface-elevated: #181B22;
-
+  --color-surface-elevated: #181b22;
 
   /* ─────────────────────────────────────────
      Accent
@@ -28,7 +26,6 @@
   --color-accent-hover: #2563eb;
   --color-accent-active: #1d4ed8;
   --color-accent-muted: #1e3a8a;
-
 
   /* ─────────────────────────────────────────
      Status
@@ -46,7 +43,6 @@
   --color-danger-hover: #dc2626;
   --color-danger-muted: #7f1d1d;
 
-
   /* ─────────────────────────────────────────
      Text
   ───────────────────────────────────────── */
@@ -56,16 +52,14 @@
   --color-text-muted: #737c8a;
   --color-text-disabled: #4b5563;
 
-
   /* ─────────────────────────────────────────
      Border
   ───────────────────────────────────────── */
 
-  --color-border: #24272E;
+  --color-border: #24272e;
   --color-border-hover: #343c48;
   --color-border-active: #3b82f6;
 }
-
 
 @layer utilities {
   .shadow-3d-dark {
@@ -95,7 +89,6 @@
   }
 }
 
-
 @utility shadow-center {
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
 }
@@ -110,4 +103,28 @@
 
 @utility shadow-center-xl {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+/* custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-active);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-hover) var(--color-card);
 }
