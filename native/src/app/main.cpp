@@ -1,13 +1,18 @@
 // src/app/main.cpp (TEMPORARY smoke test — replace with real webview main.cpp)
 #include <iostream>
-#include "../core/AppDiscoveryService.h"
+#include "../win32/ProcessSnapshot.h"
 
 int main() {
-    std::vector<AppInfo> allApps = AppDiscoveryService::discoverAllApps();
-    std::wcout << L"=== All Apps (merged + filtered): " << allApps.size() << L" apps ===\n";
-    for (const auto& app : allApps) {
-        std::wcout << L"  " << app.displayName << L"  ->  " << app.exePath << L"\n";
+    ProcessSnapshot snapshot;
+    if (!snapshot) {
+        std::wcout << L"Snapshot failed to initialize.\n";
+        return 1;
     }
+
+    std::wcout << std::boolalpha;
+    std::wcout << L"explorer.exe running: " << snapshot.isRunning(L"explorer.exe") << L"\n";
+    std::wcout << L"notepad.exe running: " << snapshot.isRunning(L"notepad.exe") << L"\n";
+    std::wcout << L"definitely_not_a_real_process.exe running: " << snapshot.isRunning(L"definitely_not_a_real_process.exe") << L"\n";
 
     return 0;
 }
