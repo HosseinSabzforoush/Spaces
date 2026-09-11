@@ -27,7 +27,7 @@ function WorkspacePage() {
       </div>
 
       {/* body */}
-      <div className="flex *:h-full gap-3 grow *:bg-surface-elevated *:rounded-md *:border-border *:border">
+      <div className="flex *:h-full *:overflow-y-hidden gap-3 grow *:bg-surface-elevated *:rounded-md *:border-border *:border">
         {/* left frame */}
         <WorkspaceDetails />
 

@@ -1,6 +1,7 @@
 import vscodeIcon from '@/assets/images/vscode-icon.png';
 import AccentColorPicker from './AccentColorPicker';
 import { Pencil } from 'lucide-react';
+import '@/styles/App.css';
 
 export default function WorkspaceDetails() {
   return (
@@ -49,12 +50,14 @@ export default function WorkspaceDetails() {
         <span className="text-text-muted text-xs">
           Description <span className="text-text-disabled">(optional)</span>
         </span>
-        <input
-          type="text"
+
+        <textarea
           name="description"
-          id="description"
           placeholder="Description"
-          className="w-full border-2 border-border rounded-md px-3 py-1 bg-card focus:border-border-active focus:outline hover:border-border-hover"
+          spellCheck="false"
+          autoCorrect="off"
+          autoCapitalize="off"
+          className="w-full h-60.5 max-h-60.5 border-2 border-border rounded-md px-3 py-1 bg-card focus:border-border-active focus:outline hover:border-border-hover custom-scrollbar"
         />
       </div>
     </div>
