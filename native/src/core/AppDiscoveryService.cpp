@@ -102,9 +102,12 @@ std::vector<AppInfo> AppDiscoveryService::discoverFromShortcuts(){
         fs::path shortcutPath(shortcut);
         std::wstring displayName = shortcutPath.stem().wstring();
         std::optional<std::wstring> exePath = resolver.resolve(shortcut);
-        fs::path entry(exePath.value());
-        std::wstring ext = entry.extension().wstring();
-        std::transform(ext.begin(), ext.end(), ext.begin(),[](wchar_t c) { return std::towlower(c); });
+        std::wstring ext;
+        if(exePath.has_value()){
+            fs::path entry(exePath.value());
+            ext = entry.extension().wstring();
+            std::transform(ext.begin(), ext.end(), ext.begin(),[](wchar_t c) { return std::towlower(c); });
+        }
 
         if(exePath.has_value() && !exePath.value().empty() && ext == L".exe"){
             AppInfo app{L"0", displayName, exePath.value(), AppSource::Shortcut};
@@ -170,13 +173,16 @@ std::vector<AppInfo> AppDiscoveryService::discoverAllApps(){
         std::transform(appPath.begin(), appPath.end(), appPath.begin(),[](wchar_t c) { return std::towlower(c); });
         std::transform(fileName.begin(), fileName.end(), fileName.begin(),[](wchar_t c) { return std::towlower(c); });
 
+        AppInfo tempApp = pair.second;
+        tempApp.id = appPath;
+
         bool isUnderWindows = (appPath.compare(0, windowsPrefix.size(), windowsPrefix) == 0);
         if(!isUnderWindows){
-            result.push_back(pair.second);
+            result.push_back(std::move(tempApp));
         }
         else{
             if(allowList.count(fileName)){
-                result.push_back(pair.second);
+                result.push_back(std::move(tempApp));
             }
         }
 
