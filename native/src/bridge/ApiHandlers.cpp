@@ -1,6 +1,7 @@
 #include "ApiHandlers.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cwctype>
 #include <optional>
 #include <string>
@@ -8,12 +9,13 @@
 
 #include <nlohmann/json.hpp>
 
+#include "Serialization.h"
 #include "../core/AppDiscoveryService.h"
 #include "../core/AppInfo.h"
 #include "../core/Workspace.h"
 #include "../core/WorkspaceManager.h"
 #include "../storage/AppCacheRepository.h"
-#include "../bridge/Serialization.h"
+#include "../storage/IconCache.h"
 #include "../storage/WorkspaceRepository.h"
 #include "../win32/GuidGenerator.h"
 #include "../win32/StringConvert.h"
@@ -34,7 +36,8 @@ std::string fail(const char* code) {
     return response.dump();
 }
 
-
+// webview passes arguments as a JSON array. Returns an empty array on
+// malformed input.
 nlohmann::json parseArgs(const std::string& request) {
     nlohmann::json args = nlohmann::json::parse(request, nullptr, false);
     if (args.is_discarded() || !args.is_array()) {
@@ -61,13 +64,52 @@ const char* statusToString(LaunchStatus status) {
     return "launchFailed";
 }
 
-} 
+std::string base64Encode(const std::vector<unsigned char>& data) {
+    static const char table[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    std::string out;
+    out.reserve(((data.size() + 2) / 3) * 4);
+
+    size_t i = 0;
+    while (i + 2 < data.size()) {
+        const std::uint32_t n = (static_cast<std::uint32_t>(data[i]) << 16) |
+                                (static_cast<std::uint32_t>(data[i + 1]) << 8) |
+                                 static_cast<std::uint32_t>(data[i + 2]);
+        out += table[(n >> 18) & 0x3F];
+        out += table[(n >> 12) & 0x3F];
+        out += table[(n >> 6) & 0x3F];
+        out += table[n & 0x3F];
+        i += 3;
+    }
+
+    const size_t remaining = data.size() - i;
+    if (remaining == 1) {
+        const std::uint32_t n = static_cast<std::uint32_t>(data[i]) << 16;
+        out += table[(n >> 18) & 0x3F];
+        out += table[(n >> 12) & 0x3F];
+        out += "==";
+    } else if (remaining == 2) {
+        const std::uint32_t n = (static_cast<std::uint32_t>(data[i]) << 16) |
+                                (static_cast<std::uint32_t>(data[i + 1]) << 8);
+        out += table[(n >> 18) & 0x3F];
+        out += table[(n >> 12) & 0x3F];
+        out += table[(n >> 6) & 0x3F];
+        out += '=';
+    }
+
+    return out;
+}
+
+} // namespace
 
 ApiHandlers::ApiHandlers(WorkspaceRepository& workspaces,
                          AppCacheRepository&  appCache,
+                         IconCache&           icons,
                          WorkspaceManager&    manager)
     : workspaces_(workspaces),
       appCache_(appCache),
+      icons_(icons),
       manager_(manager) {}
 
 void ApiHandlers::registerAll(webview::webview& view) {
@@ -92,13 +134,17 @@ void ApiHandlers::registerAll(webview::webview& view) {
     view.bind("addManualApp", [this](std::string request) {
         return addManualApp(request);
     });
+    view.bind("getAppIcon", [this](std::string request) {
+        return getAppIcon(request);
+    });
 }
 
 std::string ApiHandlers::getWorkspaces(const std::string&) {
     return ok(Serialization::toJsonArray(workspaces_.all()));
 }
 
-
+// saveWorkspace([{ id?, displayName, apps: [{appId}] }])
+// An absent or empty id means "create": a GUID is assigned here.
 std::string ApiHandlers::saveWorkspace(const std::string& request) {
     const nlohmann::json args = parseArgs(request);
     if (args.empty() || !args.at(0).is_object()) {
@@ -132,7 +178,7 @@ std::string ApiHandlers::saveWorkspace(const std::string& request) {
     return ok(Serialization::toJson(workspace));
 }
 
-
+// deleteWorkspace(["<id>"])
 std::string ApiHandlers::deleteWorkspace(const std::string& request) {
     const std::optional<std::string> id = stringArg(parseArgs(request), 0);
     if (!id.has_value() || id->empty()) {
@@ -149,7 +195,7 @@ std::string ApiHandlers::deleteWorkspace(const std::string& request) {
     return ok(nlohmann::json::object());
 }
 
-
+// launchWorkspace(["<id>"])
 std::string ApiHandlers::launchWorkspace(const std::string& request) {
     const std::optional<std::string> id = stringArg(parseArgs(request), 0);
     if (!id.has_value() || id->empty()) {
@@ -183,6 +229,12 @@ std::string ApiHandlers::getDiscoveredApps(const std::string&) {
     return ok(Serialization::toJsonArray(appCache_.all()));
 }
 
+// Rediscovers and rewrites the cache. Manually-added apps are carried
+// across: they live in the same file but discovery can never re-find them,
+// so a naive replaceAll() would silently delete them.
+//
+// Icons are extracted here too. Ones already on disk are reused, so only
+// the first rescan after install is slow.
 std::string ApiHandlers::rescanApps(const std::string&) {
     std::vector<AppInfo> merged = AppDiscoveryService::discoverAllApps();
 
@@ -200,6 +252,8 @@ std::string ApiHandlers::rescanApps(const std::string&) {
         }
     }
 
+    icons_.ensureAll(merged);
+
     appCache_.replaceAll(std::move(merged));
     if (!appCache_.save()) {
         return fail("saveFailed");
@@ -208,7 +262,10 @@ std::string ApiHandlers::rescanApps(const std::string&) {
     return ok(Serialization::toJsonArray(appCache_.all()));
 }
 
-
+// addManualApp([{ displayName, exePath, args?, workingDir? }])
+// The id is derived the same way discovery derives it — lowercased
+// exePath — so a manual entry and a later-discovered one collapse to the
+// same record instead of duplicating.
 std::string ApiHandlers::addManualApp(const std::string& request) {
     const nlohmann::json args = parseArgs(request);
     if (args.empty() || !args.at(0).is_object()) {
@@ -225,7 +282,8 @@ std::string ApiHandlers::addManualApp(const std::string& request) {
         return fail("badRequest");
     }
 
- 
+    // Lowercased through the wide form so this matches, character for
+    // character, the id AppDiscoveryService assigns at its merge step.
     std::wstring wideId = StringConvert::fromUtf8(exePath);
     std::transform(wideId.begin(), wideId.end(), wideId.begin(),
                    [](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); });
@@ -241,10 +299,35 @@ std::string ApiHandlers::addManualApp(const std::string& request) {
         return fail("badRequest");
     }
 
+    icons_.ensureIcon(app);   // best effort: no icon is not an error
+
     appCache_.add(app);
     if (!appCache_.save()) {
         return fail("saveFailed");
     }
 
     return ok(Serialization::toJson(app));
+}
+
+// getAppIcon(["<appId>"]) -> { dataUrl: "data:image/png;base64,..." }
+// Errors: badRequest, notFound (unknown app), noIcon (app has no icon).
+std::string ApiHandlers::getAppIcon(const std::string& request) {
+    const std::optional<std::string> id = stringArg(parseArgs(request), 0);
+    if (!id.has_value() || id->empty()) {
+        return fail("badRequest");
+    }
+
+    const AppInfo* app = appCache_.findById(StringConvert::fromUtf8(*id));
+    if (app == nullptr) {
+        return fail("notFound");
+    }
+
+    const std::optional<std::vector<unsigned char>> png = icons_.read(*app);
+    if (!png.has_value()) {
+        return fail("noIcon");
+    }
+
+    nlohmann::json data;
+    data["dataUrl"] = "data:image/png;base64," + base64Encode(*png);
+    return ok(data);
 }

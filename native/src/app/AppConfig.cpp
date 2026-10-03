@@ -19,6 +19,10 @@ std::filesystem::path appCachePath() {
     return dataDir() / kAppCacheFile;
 }
 
+std::filesystem::path iconsDir() {
+    return dataDir() / kIconsFolder;
+}
+
 bool ensureDataDir() {
     std::error_code ec;
     const std::filesystem::path dir = dataDir();
@@ -31,4 +35,4 @@ bool ensureDataDir() {
     return !ec;
 }
 
-} 
+} // namespace AppConfig
