@@ -7,7 +7,6 @@
 
 namespace {
 
-// Minimal COM smart pointer. MinGW has no <atlbase.h>, and this is all we need.
 template <typename T>
 class ComPtr {
 public:
@@ -17,7 +16,6 @@ public:
     ComPtr(const ComPtr&) = delete;
     ComPtr& operator=(const ComPtr&) = delete;
 
-    // For out-parameters: releases anything held, hands back the slot to fill.
     T** put() {
         reset();
         return &ptr_;
@@ -35,7 +33,6 @@ private:
     T* ptr_ = nullptr;
 };
 
-// SHGetFileInfo(SHGFI_ICON) hands us an HICON we own and must destroy.
 class IconGuard {
 public:
     explicit IconGuard(HICON icon) : icon_(icon) {}
@@ -53,7 +50,7 @@ private:
     HICON icon_;
 };
 
-} // namespace
+} 
 
 namespace IconExtractor {
 
@@ -62,7 +59,6 @@ std::optional<std::vector<unsigned char>> extractPng(const std::wstring& filePat
         return std::nullopt;
     }
 
-    // 1. Ask the shell for the icon.
     SHFILEINFOW info{};
     const DWORD_PTR found = SHGetFileInfoW(
         filePath.c_str(), 0, &info, sizeof(info),
@@ -73,7 +69,6 @@ std::optional<std::vector<unsigned char>> extractPng(const std::wstring& filePat
     }
     IconGuard icon(info.hIcon);
 
-    // 2. HICON -> WIC bitmap (keeps the alpha channel).
     ComPtr<IWICImagingFactory> factory;
     if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
                                 IID_IWICImagingFactory,
@@ -86,7 +81,6 @@ std::optional<std::vector<unsigned char>> extractPng(const std::wstring& filePat
         return std::nullopt;
     }
 
-    // CreateBitmapFromHICON yields premultiplied alpha; PNG wants straight.
     ComPtr<IWICFormatConverter> converter;
     if (FAILED(factory->CreateFormatConverter(converter.put()))) {
         return std::nullopt;
@@ -103,7 +97,6 @@ std::optional<std::vector<unsigned char>> extractPng(const std::wstring& filePat
         return std::nullopt;
     }
 
-    // 3. Encode as PNG into a memory stream.
     ComPtr<IStream> stream;
     if (FAILED(CreateStreamOnHGlobal(nullptr, TRUE, stream.put()))) {
         return std::nullopt;
@@ -139,7 +132,6 @@ std::optional<std::vector<unsigned char>> extractPng(const std::wstring& filePat
         return std::nullopt;
     }
 
-    // 4. Copy the encoded bytes out of the stream.
     STATSTG stats{};
     if (FAILED(stream->Stat(&stats, STATFLAG_NONAME))) {
         return std::nullopt;
@@ -166,4 +158,4 @@ std::optional<std::vector<unsigned char>> extractPng(const std::wstring& filePat
     return bytes;
 }
 
-} // namespace IconExtractor
+} 

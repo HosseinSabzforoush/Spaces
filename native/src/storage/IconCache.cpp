@@ -12,9 +12,7 @@
 
 namespace {
 
-// FNV-1a, 64-bit, hand-rolled on purpose: std::hash is not guaranteed to
-// give the same value across separate runs, which would orphan every icon
-// on every launch.
+
 std::wstring fileNameFor(const std::wstring& appId) {
     std::uint64_t hash = 14695981039346656037ULL;
     for (const wchar_t c : appId) {
@@ -33,8 +31,7 @@ std::wstring fileNameFor(const std::wstring& appId) {
     return name;
 }
 
-// Temp file + rename, same pattern as JsonStore: a crash mid-write can't
-// leave a truncated PNG behind under the real name.
+
 bool writeAtomically(const std::filesystem::path& target,
                      const std::vector<unsigned char>& bytes) {
     std::error_code ec;
@@ -68,14 +65,13 @@ bool writeAtomically(const std::filesystem::path& target,
     return true;
 }
 
-} // namespace
+} 
 
 IconCache::IconCache(std::filesystem::path directory)
     : directory_(std::move(directory)) {}
 
 std::filesystem::path IconCache::pathFor(const std::wstring& fileName) const {
-    // .filename() strips any directory part, so a hand-edited iconRef in
-    // apps_cache.json can't point outside the icons folder.
+
     return directory_ / std::filesystem::path(fileName).filename();
 }
 
@@ -113,7 +109,6 @@ void IconCache::ensureAll(std::vector<AppInfo>& apps) const {
         }
     }
 
-    // Drop icons that no app refers to any more (uninstalled apps).
     std::error_code ec;
     if (!std::filesystem::is_directory(directory_, ec)) {
         return;

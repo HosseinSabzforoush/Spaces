@@ -12,12 +12,15 @@
 #include "Serialization.h"
 #include "../core/AppDiscoveryService.h"
 #include "../core/AppInfo.h"
+#include "../core/AppSettings.h"
 #include "../core/Workspace.h"
 #include "../core/WorkspaceManager.h"
 #include "../storage/AppCacheRepository.h"
 #include "../storage/IconCache.h"
+#include "../storage/SettingsRepository.h"
 #include "../storage/WorkspaceRepository.h"
 #include "../win32/GuidGenerator.h"
+#include "../win32/StartupRegistration.h"
 #include "../win32/StringConvert.h"
 
 namespace {
@@ -36,8 +39,7 @@ std::string fail(const char* code) {
     return response.dump();
 }
 
-// webview passes arguments as a JSON array. Returns an empty array on
-// malformed input.
+
 nlohmann::json parseArgs(const std::string& request) {
     nlohmann::json args = nlohmann::json::parse(request, nullptr, false);
     if (args.is_discarded() || !args.is_array()) {
@@ -101,15 +103,17 @@ std::string base64Encode(const std::vector<unsigned char>& data) {
     return out;
 }
 
-} // namespace
+} 
 
 ApiHandlers::ApiHandlers(WorkspaceRepository& workspaces,
                          AppCacheRepository&  appCache,
                          IconCache&           icons,
+                         SettingsRepository&  settings,
                          WorkspaceManager&    manager)
     : workspaces_(workspaces),
       appCache_(appCache),
       icons_(icons),
+      settings_(settings),
       manager_(manager) {}
 
 void ApiHandlers::registerAll(webview::webview& view) {
@@ -137,14 +141,19 @@ void ApiHandlers::registerAll(webview::webview& view) {
     view.bind("getAppIcon", [this](std::string request) {
         return getAppIcon(request);
     });
+    view.bind("getSettings", [this](std::string request) {
+        return getSettings(request);
+    });
+    view.bind("saveSettings", [this](std::string request) {
+        return saveSettings(request);
+    });
 }
 
 std::string ApiHandlers::getWorkspaces(const std::string&) {
     return ok(Serialization::toJsonArray(workspaces_.all()));
 }
 
-// saveWorkspace([{ id?, displayName, apps: [{appId}] }])
-// An absent or empty id means "create": a GUID is assigned here.
+
 std::string ApiHandlers::saveWorkspace(const std::string& request) {
     const nlohmann::json args = parseArgs(request);
     if (args.empty() || !args.at(0).is_object()) {
@@ -178,7 +187,6 @@ std::string ApiHandlers::saveWorkspace(const std::string& request) {
     return ok(Serialization::toJson(workspace));
 }
 
-// deleteWorkspace(["<id>"])
 std::string ApiHandlers::deleteWorkspace(const std::string& request) {
     const std::optional<std::string> id = stringArg(parseArgs(request), 0);
     if (!id.has_value() || id->empty()) {
@@ -229,12 +237,7 @@ std::string ApiHandlers::getDiscoveredApps(const std::string&) {
     return ok(Serialization::toJsonArray(appCache_.all()));
 }
 
-// Rediscovers and rewrites the cache. Manually-added apps are carried
-// across: they live in the same file but discovery can never re-find them,
-// so a naive replaceAll() would silently delete them.
-//
-// Icons are extracted here too. Ones already on disk are reused, so only
-// the first rescan after install is slow.
+
 std::string ApiHandlers::rescanApps(const std::string&) {
     std::vector<AppInfo> merged = AppDiscoveryService::discoverAllApps();
 
@@ -262,10 +265,7 @@ std::string ApiHandlers::rescanApps(const std::string&) {
     return ok(Serialization::toJsonArray(appCache_.all()));
 }
 
-// addManualApp([{ displayName, exePath, args?, workingDir? }])
-// The id is derived the same way discovery derives it — lowercased
-// exePath — so a manual entry and a later-discovered one collapse to the
-// same record instead of duplicating.
+
 std::string ApiHandlers::addManualApp(const std::string& request) {
     const nlohmann::json args = parseArgs(request);
     if (args.empty() || !args.at(0).is_object()) {
@@ -282,8 +282,7 @@ std::string ApiHandlers::addManualApp(const std::string& request) {
         return fail("badRequest");
     }
 
-    // Lowercased through the wide form so this matches, character for
-    // character, the id AppDiscoveryService assigns at its merge step.
+
     std::wstring wideId = StringConvert::fromUtf8(exePath);
     std::transform(wideId.begin(), wideId.end(), wideId.begin(),
                    [](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); });
@@ -299,7 +298,7 @@ std::string ApiHandlers::addManualApp(const std::string& request) {
         return fail("badRequest");
     }
 
-    icons_.ensureIcon(app);   // best effort: no icon is not an error
+    icons_.ensureIcon(app); 
 
     appCache_.add(app);
     if (!appCache_.save()) {
@@ -309,8 +308,7 @@ std::string ApiHandlers::addManualApp(const std::string& request) {
     return ok(Serialization::toJson(app));
 }
 
-// getAppIcon(["<appId>"]) -> { dataUrl: "data:image/png;base64,..." }
-// Errors: badRequest, notFound (unknown app), noIcon (app has no icon).
+
 std::string ApiHandlers::getAppIcon(const std::string& request) {
     const std::optional<std::string> id = stringArg(parseArgs(request), 0);
     if (!id.has_value() || id->empty()) {
@@ -330,4 +328,43 @@ std::string ApiHandlers::getAppIcon(const std::string& request) {
     nlohmann::json data;
     data["dataUrl"] = "data:image/png;base64," + base64Encode(*png);
     return ok(data);
+}
+
+std::string ApiHandlers::getSettings(const std::string&) {
+    AppSettings settings = settings_.get();
+
+
+    settings.runAtStartup = StartupRegistration::isEnabled();
+
+    return ok(Serialization::toJson(settings));
+}
+
+
+std::string ApiHandlers::saveSettings(const std::string& request) {
+    const nlohmann::json args = parseArgs(request);
+    if (args.empty() || !args.at(0).is_object()) {
+        return fail("badRequest");
+    }
+
+    const bool startupNow = StartupRegistration::isEnabled();
+
+    AppSettings next = settings_.get();
+    next.runAtStartup = startupNow;  
+
+    if (!Serialization::fromJson(args.at(0), next)) {
+        return fail("badRequest");
+    }
+
+
+    if (next.runAtStartup != startupNow &&
+        !StartupRegistration::setEnabled(next.runAtStartup)) {
+        return fail("startupFailed");
+    }
+
+    settings_.set(next);
+    if (!settings_.save()) {
+        return fail("saveFailed");
+    }
+
+    return ok(Serialization::toJson(next));
 }

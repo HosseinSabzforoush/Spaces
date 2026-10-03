@@ -19,6 +19,10 @@ std::filesystem::path appCachePath() {
     return dataDir() / kAppCacheFile;
 }
 
+std::filesystem::path settingsPath() {
+    return dataDir() / kSettingsFile;
+}
+
 std::filesystem::path iconsDir() {
     return dataDir() / kIconsFolder;
 }
@@ -35,4 +39,4 @@ bool ensureDataDir() {
     return !ec;
 }
 
-} // namespace AppConfig
+} 

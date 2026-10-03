@@ -35,6 +35,12 @@ void writeOptionalWide(nlohmann::json& node,
     }
 }
 
+void readBool(const nlohmann::json& node, const char* key, bool& out) {
+    if (node.contains(key) && node.at(key).is_boolean()) {
+        out = node.at(key).get<bool>();
+    }
+}
+
 }
 
 namespace Serialization {
@@ -54,6 +60,20 @@ AppSource appSourceFromString(const std::string& text) {
     return AppSource::Manual;
 }
 
+std::string toString(Theme theme) {
+    switch (theme) {
+        case Theme::Dark:   return "dark";
+        case Theme::Light:  return "light";
+        case Theme::System: return "system";
+    }
+    return "dark";
+}
+
+Theme themeFromString(const std::string& text) {
+    if (text == "light")  return Theme::Light;
+    if (text == "system") return Theme::System;
+    return Theme::Dark;
+}
 
 
 nlohmann::json toJson(const AppInfo& app) {
@@ -156,7 +176,6 @@ bool fromJson(const nlohmann::json& node, Workspace& out) {
             if (fromJson(child, entry)) {
                 workspace.apps.push_back(std::move(entry));
             }
-
         }
     }
 
@@ -164,6 +183,33 @@ bool fromJson(const nlohmann::json& node, Workspace& out) {
     return true;
 }
 
+
+nlohmann::json toJson(const AppSettings& settings) {
+    nlohmann::json node;
+    node["theme"]               = toString(settings.theme);
+    node["runAtStartup"]        = settings.runAtStartup;
+    node["rescanOnStartup"]     = settings.rescanOnStartup;
+    node["confirmBeforeDelete"] = settings.confirmBeforeDelete;
+    return node;
+}
+
+bool fromJson(const nlohmann::json& node, AppSettings& out) {
+    if (!node.is_object()) {
+        return false;
+    }
+
+    AppSettings settings = out;
+
+    if (node.contains("theme") && node.at("theme").is_string()) {
+        settings.theme = themeFromString(node.at("theme").get<std::string>());
+    }
+    readBool(node, "runAtStartup",        settings.runAtStartup);
+    readBool(node, "rescanOnStartup",     settings.rescanOnStartup);
+    readBool(node, "confirmBeforeDelete", settings.confirmBeforeDelete);
+
+    out = settings;
+    return true;
+}
 
 
 nlohmann::json toJsonArray(const std::vector<AppInfo>& apps) {

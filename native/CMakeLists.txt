@@ -30,6 +30,7 @@ add_executable(Spaces WIN32
     src/win32/StringConvert.cpp
     src/win32/GuidGenerator.cpp
     src/win32/IconExtractor.cpp
+    src/win32/StartupRegistration.cpp
 
     src/core/AppDiscoveryService.cpp
     src/core/WorkspaceManager.cpp
@@ -38,6 +39,7 @@ add_executable(Spaces WIN32
     src/storage/WorkspaceRepository.cpp
     src/storage/AppCacheRepository.cpp
     src/storage/IconCache.cpp
+    src/storage/SettingsRepository.cpp
 
     src/bridge/Serialization.cpp
     src/bridge/ApiHandlers.cpp
@@ -45,9 +47,7 @@ add_executable(Spaces WIN32
 
 target_include_directories(Spaces PRIVATE third_party)
 
-# ole32/shell32/uuid  — COM, shell, interface GUIDs
-# windowscodecs       — WIC, used by IconExtractor to encode PNG
-# advapi32            — registry
+
 target_link_libraries(Spaces PRIVATE webview::core advapi32 ole32 shell32 windowscodecs uuid)
 
 target_link_options(Spaces PRIVATE -municode -static-libgcc -static-libstdc++ -static -lpthread)
