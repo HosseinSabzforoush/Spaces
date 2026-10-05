@@ -1,35 +1,20 @@
 @import 'tailwindcss';
 
 @theme {
-  /* ─────────────────────────────────────────
-     App Background
-  ───────────────────────────────────────── */
 
   --color-app: #0b0d10;
   --color-sidebar: #111419;
   --color-background-subtle: #171b21;
 
-  /* ─────────────────────────────────────────
-     Surface / Cards
-  ───────────────────────────────────────── */
-
   --color-card: #15191f;
   --color-card-hover: #1b2027;
   --color-card-active: #202630;
-  --color-surface-elevated: #181b22;
-
-  /* ─────────────────────────────────────────
-     Accent
-  ───────────────────────────────────────── */
+  --color-surface-elevated: #242a33;
 
   --color-accent: #3b82f6;
   --color-accent-hover: #2563eb;
   --color-accent-active: #1d4ed8;
   --color-accent-muted: #1e3a8a;
-
-  /* ─────────────────────────────────────────
-     Status
-  ───────────────────────────────────────── */
 
   --color-success: #22c55e;
   --color-success-hover: #16a34a;
@@ -43,22 +28,48 @@
   --color-danger-hover: #dc2626;
   --color-danger-muted: #7f1d1d;
 
-  /* ─────────────────────────────────────────
-     Text
-  ───────────────────────────────────────── */
-
   --color-text-primary: #f5f7fa;
   --color-text-secondary: #a7afbc;
   --color-text-muted: #737c8a;
   --color-text-disabled: #4b5563;
 
-  /* ─────────────────────────────────────────
-     Border
-  ───────────────────────────────────────── */
-
-  --color-border: #24272e;
+  --color-border: #252b33;
   --color-border-hover: #343c48;
   --color-border-active: #3b82f6;
+
+  --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-app);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-border-active);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {
@@ -105,7 +116,6 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
 }
 
-/* custom scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

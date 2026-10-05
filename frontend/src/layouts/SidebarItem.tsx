@@ -6,19 +6,23 @@ interface SidebarItemProps {
   to: string
   icon: LucideIcon
   label: string
+  collapsed?: boolean
 }
 
-export const SidebarItem = ({ to, icon: Icon, label }: SidebarItemProps) => {
+export const SidebarItem = ({ to, icon: Icon, label, collapsed = false }: SidebarItemProps) => {
   return (
     <NavLink
       to={to}
+      title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
       className={({ isActive }) => cn(
-        'flex items-start w-full min-w-36 gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/10',
-        isActive && 'bg-[#1f232d] text-blue-500 font-semibold bg-white/5 hover:text-blue-400'
+        'flex h-11 w-full items-center gap-3 rounded-xl text-text-secondary transition-colors duration-200 hover:bg-card-hover hover:text-text-primary',
+        collapsed ? 'justify-center' : 'px-4',
+        isActive && 'bg-card-active font-semibold text-accent hover:bg-card-active hover:text-accent'
       )}
     >
-      <Icon className="w-5 h-5" />
-      <span>{label}</span>
+      <Icon className="h-5 w-5 shrink-0" />
+      {!collapsed && <span className="truncate">{label}</span>}
     </NavLink>
   )
 }

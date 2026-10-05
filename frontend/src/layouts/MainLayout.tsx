@@ -1,23 +1,30 @@
-import Sidebar from '@/layouts/Sidebar'
+import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
-import Topbar from '@/layouts/Topbar'
+import Sidebar from '@/layouts/Sidebar'
+import PageTransition from '@/layouts/PageTransition'
+import { useUiStore } from '@/stores/uiStore'
+
+const NARROW_WINDOW = '(max-width: 52rem)'
 
 function MainLayout() {
+  useEffect(() => {
+    const query = window.matchMedia(NARROW_WINDOW)
+    const collapseWhenNarrow = () => {
+      if (query.matches) useUiStore.getState().setSidebarCollapsed(true)
+    }
+    collapseWhenNarrow()
+    query.addEventListener('change', collapseWhenNarrow)
+    return () => query.removeEventListener('change', collapseWhenNarrow)
+  }, [])
+
   return (
-    <div className='flex flex-row h-screen overflow-hidden'>
-      {/* Sidebar */}
+    <div className='flex h-screen flex-row overflow-hidden bg-app text-text-primary'>
       <Sidebar />
-
-      {/* Right box */}
-      <div className='flex flex-col w-full bg-app text-text-primary '>
-
-        <Topbar />
-
-        {/* Main Page*/}
-        <main className='flex-1 min-h-0 grow'>
+      <main className='min-h-0 min-w-0 flex-1 overflow-x-hidden px-5 py-6 md:px-8'>
+        <PageTransition>
           <Outlet />
-        </main>
-      </div>
+        </PageTransition>
+      </main>
     </div>
   )
 }
