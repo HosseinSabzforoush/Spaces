@@ -1,55 +1,46 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
+import { Check } from 'lucide-react';
+import { cn } from '@/utils/cn';
 
-const colors = [
-  { id: 'blue', hex: '#2563eb' },
-  { id: 'purple', hex: '#9333ea' },
-  { id: 'orange', hex: '#f97316' },
-  { id: 'pink', hex: '#db2777' },
-  { id: 'teal', hex: '#0d9488' },
+const ACCENT_COLORS = [
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Purple', value: '#8b5cf6' },
+  { name: 'Green', value: '#22c55e' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Teal', value: '#14b8a6' },
 ];
 
-export default function AccentColorPicker() {
-  const [selected, setSelected] = useState('blue');
+interface AccentColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+}
 
+export default function AccentColorPicker({ value, onChange }: AccentColorPickerProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <span className="text-text-muted text-xs">Accent Color</span>
-
-      <div
-        className="flex gap-5 *:cursor-pointer"
-        role="radiogroup">
-        {colors.map((color) => (
-          <label
-            key={color.id}
-            className="relative cursor-pointer">
-            <input
-              type="radio"
-              name="accent-color"
-              value={color.id}
-              checked={selected === color.id}
-              onChange={() => setSelected(color.id)}
-              className="sr-only"
-            />
-
-            <motion.div
-              whileTap={{ scale: 0.85 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              className="h-7 w-7 rounded-full"
-              style={{ backgroundColor: color.hex }}>
-              {selected === color.id && (
-                <motion.span
-                  layoutId="active-ring"
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    boxShadow: `0 0 0 2px #1e1e1e, 0 0 0 4px ${color.hex}`,
-                  }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs text-text-muted">Accent color</span>
+      <div role="radiogroup" aria-label="Accent color" className="flex flex-wrap gap-2.5">
+        {ACCENT_COLORS.map((c) => {
+          const selected = c.value === value;
+          return (
+            <button
+              key={c.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={c.name}
+              title={c.name}
+              onClick={() => onChange(c.value)}
+              style={{ backgroundColor: c.value }}
+              className={cn(
+                'flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-transform hover:scale-110',
+                selected && 'ring-2 ring-white/80 ring-offset-2 ring-offset-surface-elevated'
               )}
-            </motion.div>
-          </label>
-        ))}
+            >
+              {selected && <Check size={14} strokeWidth={3} className="text-white" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
