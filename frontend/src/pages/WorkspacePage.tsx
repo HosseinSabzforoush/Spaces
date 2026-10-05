@@ -1,43 +1,36 @@
-import WorkspaceDetails from '@/features/workspaces/components/WorkspaceDetails';
-import { Rocket } from "lucide-react";
-import { useNavigate } from "react-router-dom"
+import { SearchX } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import Button from '@/components/ui/Button';
+import EmptyState from '@/components/ui/EmptyState';
+import ErrorState from '@/components/ui/ErrorState';
+import WorkspaceEditor from '@/features/workspaces/components/WorkspaceEditor';
+import WorkspaceEditorSkeleton from '@/features/workspaces/components/WorkspaceEditorSkeleton';
+import { useWorkspaceStore } from '@/features/workspaces/store/workspaceStore';
+import { useWindowTitle } from '@/hooks/useWindowTitle';
 
-function WorkspacePage() {
+export default function WorkspacePage() {
+  const { workspaceId } = useParams();
+  const workspace = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === workspaceId));
+  const status = useWorkspaceStore((s) => s.status);
+  const error = useWorkspaceStore((s) => s.error);
+  const load = useWorkspaceStore((s) => s.load);
 
-  const navigate = useNavigate();
+  useWindowTitle(workspace?.title);
 
-  return (
-    <div className='flex flex-col h-full gap-2 pb-5 px-7'>
-      {/* header */}
-      <div className='flex justify-between text-sm font-semibold'>
-        {/* workspace nav */}
-        <div className='flex gap-1'>
-          <span className='cursor-pointer hover:text-accent-hover' onClick={() => { navigate('/workspaces') }}>Workspaces</span>
-          /
-          <span>Coding</span>
-        </div>
+  if (status === 'idle' || status === 'loading') return <WorkspaceEditorSkeleton />;
+  if (status === 'error') return <ErrorState title="Couldn't load this workspace" message={error} onRetry={() => void load()} />;
 
-        {/* buttons */}
-        <div className='flex gap-2 *:cursor-pointer'>
-          <button className='px-3 py-1 rounded-lg bg-card-active shadow-3d-dark'>Edit</button>
-          <button className='flex items-center justify-center h-8 px-3 rounded-lg cursor-pointer bg-success shadow-3d-dark'>
-            <span className='flex items-center gap-2'>Launch <Rocket width={16} height={16} /></span>
-          </button>
-        </div>
-      </div>
+  if (!workspace) {
+    return (
+      <EmptyState
+        className="h-full"
+        icon={SearchX}
+        title="Workspace not found"
+        description="It may have been deleted."
+        action={<Link to="/workspaces"><Button variant="primary">Back to workspaces</Button></Link>}
+      />
+    );
+  }
 
-      {/* body */}
-      <div className="flex *:h-full *:overflow-y-hidden gap-3 grow *:bg-surface-elevated *:rounded-md *:border-border *:border">
-        {/* left frame */}
-        <WorkspaceDetails />
-
-        {/* right frame */}
-        <div className='w-3/5'>
-
-        </div>
-      </div>
-    </div>
-  )
+  return <WorkspaceEditor key={workspace.id} workspace={workspace} />;
 }
-
-export default WorkspacePage
