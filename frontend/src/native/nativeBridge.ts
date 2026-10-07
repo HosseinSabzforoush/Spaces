@@ -1,16 +1,7 @@
-
-export interface NativeBridgeHost {
-  invoke(command: string, payload?: unknown): Promise<unknown>;
-}
-
-declare global {
-  interface Window {
-    nativeBridge?: NativeBridgeHost;
-  }
-}
+import { handlers, hasBackend } from './webviewBridge';
 
 export function isNativeAvailable(): boolean {
-  return typeof window !== 'undefined' && typeof window.nativeBridge?.invoke === 'function';
+  return hasBackend();
 }
 
 export async function callNative<T>(
@@ -18,8 +9,9 @@ export async function callNative<T>(
   payload: unknown,
   mock: () => Promise<T> | T,
 ): Promise<T> {
-  if (isNativeAvailable()) {
-    return (await window.nativeBridge!.invoke(command, payload)) as T;
+  const handler = handlers[command];
+  if (isNativeAvailable() && handler) {
+    return (await (handler as (p: unknown) => Promise<unknown>)(payload)) as T;
   }
   return mock();
 }
