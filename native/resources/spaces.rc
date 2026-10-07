@@ -1,0 +1,3 @@
+// Windows resource script. Embeds the icon into Spaces.exe.
+// Resource ID 1 is also what main.cpp loads for the window's title-bar icon.
+1 ICON "spaces.ico"
