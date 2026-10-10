@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <cwctype>
+#include <filesystem>
+#include <system_error>
 #include <optional>
 #include <string>
 #include <vector>
@@ -19,6 +21,7 @@
 #include "../storage/IconCache.h"
 #include "../storage/SettingsRepository.h"
 #include "../storage/WorkspaceRepository.h"
+#include "../win32/FileDialog.h"
 #include "../win32/GuidGenerator.h"
 #include "../win32/StartupRegistration.h"
 #include "../win32/StringConvert.h"
@@ -141,6 +144,9 @@ void ApiHandlers::registerAll(webview::webview& view) {
     view.bind("getAppIcon", [this](std::string request) {
         return getAppIcon(request);
     });
+    view.bind("selectExecutables", [this](std::string request) {
+        return selectExecutables(request);
+    });
     view.bind("getSettings", [this](std::string request) {
         return getSettings(request);
     });
@@ -203,7 +209,6 @@ std::string ApiHandlers::deleteWorkspace(const std::string& request) {
     return ok(nlohmann::json::object());
 }
 
-// launchWorkspace(["<id>"])
 std::string ApiHandlers::launchWorkspace(const std::string& request) {
     const std::optional<std::string> id = stringArg(parseArgs(request), 0);
     if (!id.has_value() || id->empty()) {
@@ -243,6 +248,10 @@ std::string ApiHandlers::rescanApps(const std::string&) {
 
     for (const AppInfo& existing : appCache_.all()) {
         if (existing.source != AppSource::Manual) {
+            continue;
+        }
+        std::error_code ec;
+        if (!std::filesystem::exists(existing.exePath, ec)) {
             continue;
         }
         const bool alreadyPresent =
@@ -328,6 +337,14 @@ std::string ApiHandlers::getAppIcon(const std::string& request) {
     nlohmann::json data;
     data["dataUrl"] = "data:image/png;base64," + base64Encode(*png);
     return ok(data);
+}
+
+std::string ApiHandlers::selectExecutables(const std::string&) {
+    nlohmann::json paths = nlohmann::json::array();
+    for (const std::wstring& path : FileDialog::pickExecutables()) {
+        paths.push_back(StringConvert::toUtf8(path));
+    }
+    return ok(paths);
 }
 
 std::string ApiHandlers::getSettings(const std::string&) {

@@ -19,9 +19,12 @@ function SettingsPage() {
       <PageHeader title='Settings' />
 
       <div className='flex flex-col flex-1 min-h-0 max-w-3xl gap-8 pb-4 pr-1 overflow-y-auto custom-scrollbar'>
-        <SettingsSection title='Startup' description='What happens when Windows starts.'>
+        <SettingsSection title='Startup' description='What happens when Spaces starts.'>
           <SettingsRow title='Start with Windows' description='Open Spaces when you sign in.'>
             <ToggleSwitch checked={settings.startWithWindows} onChange={(c) => void settings.setStartWithWindows(c)} label='Start with Windows' />
+          </SettingsRow>
+          <SettingsRow title='Scan for apps on startup' description='Look for newly installed or removed apps each time Spaces opens. Turn off for a faster start.'>
+            <ToggleSwitch checked={settings.rescanOnStartup} onChange={(c) => settings.update('rescanOnStartup', c)} label='Scan for apps on startup' />
           </SettingsRow>
           <SettingsRow title='Launch a workspace on startup' description='Automatically open one workspace when the app starts.'>
             <ToggleSwitch checked={settings.startupWorkspaceEnabled} onChange={(c) => settings.update('startupWorkspaceEnabled', c)} label='Launch a workspace on startup' />

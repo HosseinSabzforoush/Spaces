@@ -21,7 +21,6 @@
 
 namespace {
 
-// Folder that contains Spaces.exe (not the working directory, which varies).
 std::filesystem::path exeDirectory() {
     wchar_t buffer[MAX_PATH];
     const DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
@@ -31,7 +30,6 @@ std::filesystem::path exeDirectory() {
     return std::filesystem::path(buffer).parent_path();
 }
 
-// C:\My Apps\dist\index.html  ->  file:///C:/My%20Apps/dist/index.html
 std::string toFileUrl(const std::filesystem::path& path) {
     const std::string utf8 = StringConvert::toUtf8(path.generic_wstring());
 
@@ -49,11 +47,8 @@ std::string toFileUrl(const std::filesystem::path& path) {
     return url;
 }
 
-// Resource ID of the icon declared in resources/spaces.rc.
 constexpr int kIconResourceId = 1;
 
-// The exe's own icon comes from the .rc file automatically; the webview window
-// is created by the library, so we give it the same icon explicitly.
 void applyWindowIcon(void* nativeWindow) {
     if (nativeWindow == nullptr) {
         return;
@@ -76,7 +71,27 @@ void applyWindowIcon(void* nativeWindow) {
     }
 }
 
-}  // namespace
+#ifdef NDEBUG
+constexpr const char* kLockDownScript = R"JS(
+(function () {
+  window.addEventListener('contextmenu', function (e) { e.preventDefault(); }, true);
+  window.addEventListener('wheel', function (e) { if (e.ctrlKey) e.preventDefault(); },
+                          { passive: false, capture: true });
+  window.addEventListener('keydown', function (e) {
+    var key = e.key.toLowerCase();
+    var ctrl = e.ctrlKey || e.metaKey;
+    var blocked =
+      e.key === 'F5' || e.key === 'F7' || e.key === 'F12' ||
+      (ctrl && ['p', 's', 'u', 'f', 'g', 'j', 'r', '+', '-', '=', '0'].indexOf(key) !== -1) ||
+      (ctrl && e.shiftKey && ['i', 'c', 'j', 'p'].indexOf(key) !== -1) ||
+      (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight'));
+    if (blocked) e.preventDefault();
+  }, true);
+})();
+)JS";
+#endif
+
+}
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
@@ -92,7 +107,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         return 1;
     }
 
-    // Decide where the UI comes from before creating the window.
     std::string frontendUrl;
 #ifdef SPACES_DEV_SERVER
     frontendUrl = AppConfig::kFrontendUrl;
@@ -124,9 +138,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     }
 
     WorkspaceManager manager(workspaces, appCache);
+
+    const AppSettings& startup = settings.get();
+    if (startup.startupWorkspaceEnabled && !startup.startupWorkspaceId.empty()) {
+        manager.launchWorkspace(startup.startupWorkspaceId);
+    }
+
     ApiHandlers      api(workspaces, appCache, icons, settings, manager);
 
-    // Developer tools (right-click > Inspect) are available in debug builds only.
 #ifdef NDEBUG
     const bool enableDevTools = false;
 #else
@@ -143,6 +162,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     }
 
     api.registerAll(view);
+
+#ifdef NDEBUG
+    view.init(kLockDownScript);
+#endif
 
     view.navigate(frontendUrl);
     view.run();

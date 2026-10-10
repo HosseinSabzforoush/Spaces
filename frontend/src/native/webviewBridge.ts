@@ -1,9 +1,9 @@
-
-
+import { appNameFromPath } from '@/utils/paths';
 import type { Workspace } from '@/features/workspaces/types';
 import type { Application } from '@/features/applications/types';
 import type { LibraryApp } from '@/features/library/types';
 import type { LaunchResult } from './processApi';
+import type { SelectedExecutable } from './fileSystemApi';
 
 
 interface BackendApp {
@@ -37,6 +37,7 @@ async function rpc<T>(name: string, ...args: unknown[]): Promise<T> {
 
 const appIdOf = (path: string) => path.trim().toLowerCase();
 
+
 let queue: Promise<unknown> = Promise.resolve();
 const enqueue = <T>(job: () => Promise<T>): Promise<T> => {
   const next = queue.then(job, job);
@@ -48,15 +49,28 @@ const iconCache = new Map<string, Promise<string | undefined>>();
 const iconFor = (id: string) => {
   let hit = iconCache.get(id);
   if (!hit) {
-    hit = rpc<{ dataUrl: string }>('getAppIcon', id).then((d) => d.dataUrl, () => undefined);
+    hit = rpc<{ dataUrl: string }>('getAppIcon', id).then(
+      (d) => d.dataUrl,
+      () => {
+        iconCache.delete(id);
+        return undefined;
+      },
+    );
     iconCache.set(id, hit);
   }
   return hit;
 };
 
-async function discoveredApps(): Promise<BackendApp[]> {
-  const apps = await rpc<BackendApp[]>('getDiscoveredApps');
-  return apps.length > 0 ? apps : rpc<BackendApp[]>('rescanApps');
+let scan: Promise<BackendApp[]> | null = null;
+function discoveredApps(): Promise<BackendApp[]> {
+  scan ??= (async () => {
+    const [settings, cached] = await Promise.all([
+      rpc<{ rescanOnStartup: boolean }>('getSettings'),
+      rpc<BackendApp[]>('getDiscoveredApps'),
+    ]);
+    return settings.rescanOnStartup || cached.length === 0 ? rpc<BackendApp[]>('rescanApps') : cached;
+  })().catch(() => rpc<BackendApp[]>('getDiscoveredApps'));
+  return scan;
 }
 
 async function registerApps(items: { name: string; executablePath: string }[]) {
@@ -168,6 +182,21 @@ function failureMessage(status: BackendOutcome['status']): string {
   return 'Could not start the app.';
 }
 
+async function selectExecutables(): Promise<SelectedExecutable[]> {
+  const paths = await rpc<string[]>('selectExecutables');
+  if (paths.length === 0) return [];
+
+  const known = new Map((await rpc<BackendApp[]>('getDiscoveredApps')).map((a) => [a.id, a]));
+  const result: SelectedExecutable[] = [];
+  for (const path of paths) {
+    const app =
+      known.get(appIdOf(path)) ??
+      (await rpc<BackendApp>('addManualApp', { displayName: appNameFromPath(path), exePath: path }));
+    result.push({ name: app.displayName, executablePath: app.exePath, icon: await iconFor(app.id) });
+  }
+  return result;
+}
+
 
 type Handler = (payload: never) => Promise<unknown>;
 
@@ -177,6 +206,25 @@ export const handlers: Record<string, Handler> = {
   'library.list': libraryList,
   'library.saveAll': librarySaveAll,
   'process.launchWorkspace': launchWorkspace,
+  'startup.getSettings': async () => {
+    const s = await rpc<{ rescanOnStartup: boolean; startupWorkspaceEnabled: boolean; startupWorkspaceId: string }>('getSettings');
+    return {
+      rescanOnStartup: s.rescanOnStartup,
+      startupWorkspaceEnabled: s.startupWorkspaceEnabled,
+      startupWorkspaceId: s.startupWorkspaceId || null,
+    };
+  },
+  'startup.saveSettings': async (patch: { startupWorkspaceId?: string | null }) => {
+    const { startupWorkspaceId, ...rest } = patch;
+    await rpc('saveSettings', {
+      ...rest,
+      ...(startupWorkspaceId !== undefined && { startupWorkspaceId: startupWorkspaceId ?? '' }),
+    });
+  },
+  'fileSystem.selectExecutables': selectExecutables,
+  'fileSystem.resolveDroppedFiles': selectExecutables,
+  'fileSystem.selectDirectory': async () => null,
+  'fileSystem.scanForExecutables': async () => [],
   'startup.isEnabled': async () => (await rpc<{ runAtStartup: boolean }>('getSettings')).runAtStartup,
   'startup.setEnabled': async ({ enabled }: { enabled: boolean }) => {
     await rpc('saveSettings', { runAtStartup: enabled });

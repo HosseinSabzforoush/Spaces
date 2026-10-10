@@ -30,6 +30,7 @@ private:
     std::string rescanApps(const std::string& request);
     std::string addManualApp(const std::string& request);
     std::string getAppIcon(const std::string& request);
+    std::string selectExecutables(const std::string& request);
     std::string getSettings(const std::string& request);
     std::string saveSettings(const std::string& request);
 

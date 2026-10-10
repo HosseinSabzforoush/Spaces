@@ -190,6 +190,8 @@ nlohmann::json toJson(const AppSettings& settings) {
     node["runAtStartup"]        = settings.runAtStartup;
     node["rescanOnStartup"]     = settings.rescanOnStartup;
     node["confirmBeforeDelete"] = settings.confirmBeforeDelete;
+    node["startupWorkspaceEnabled"] = settings.startupWorkspaceEnabled;
+    node["startupWorkspaceId"]      = StringConvert::toUtf8(settings.startupWorkspaceId);
     return node;
 }
 
@@ -206,6 +208,8 @@ bool fromJson(const nlohmann::json& node, AppSettings& out) {
     readBool(node, "runAtStartup",        settings.runAtStartup);
     readBool(node, "rescanOnStartup",     settings.rescanOnStartup);
     readBool(node, "confirmBeforeDelete", settings.confirmBeforeDelete);
+    readBool(node, "startupWorkspaceEnabled", settings.startupWorkspaceEnabled);
+    readWide(node, "startupWorkspaceId", settings.startupWorkspaceId);
 
     out = settings;
     return true;
@@ -228,4 +232,4 @@ nlohmann::json toJsonArray(const std::vector<Workspace>& workspaces) {
     return array;
 }
 
-} 
+}

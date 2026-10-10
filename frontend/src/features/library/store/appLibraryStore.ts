@@ -63,6 +63,7 @@ export const useAppLibraryStore = create<AppLibraryState>((set, get) => {
           id: uid(),
           name: entry.name.trim() || appNameFromPath(entry.executablePath),
           executablePath: entry.executablePath.trim(),
+          icon: entry.icon,
           addedAt: now,
         };
         known.set(key, app);

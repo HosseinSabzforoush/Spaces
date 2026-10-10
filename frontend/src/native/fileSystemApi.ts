@@ -6,6 +6,7 @@ import { SCAN_CATALOG } from './mocks/scanCatalog';
 export interface SelectedExecutable {
   executablePath: string;
   name: string;
+  icon?: string;
 }
 
 export interface ScanOptions {

@@ -139,6 +139,21 @@ std::vector<std::wstring> AppDiscoveryService::scanFolderForShortcuts(const std:
     
 }
 
+namespace {
+    
+bool isJunkExecutable(const std::wstring& lowerPath, const std::wstring& lowerFileName) {
+    static const wchar_t* const badNameParts[] = {
+        L"unins", L"setup", L"install", L"update", L"crash", L"redist", L"helper"};
+    for (const wchar_t* part : badNameParts) {
+        if (lowerFileName.find(part) != std::wstring::npos) {
+            return true;
+        }
+    }
+    return lowerPath.find(L"\\common files\\") != std::wstring::npos;
+}
+
+}
+
 std::vector<AppInfo> AppDiscoveryService::discoverAllApps(){
 
     std::vector<AppInfo> registryApps = discoverFromAppPaths();
@@ -172,6 +187,14 @@ std::vector<AppInfo> AppDiscoveryService::discoverAllApps(){
 
         std::transform(appPath.begin(), appPath.end(), appPath.begin(),[](wchar_t c) { return std::towlower(c); });
         std::transform(fileName.begin(), fileName.end(), fileName.begin(),[](wchar_t c) { return std::towlower(c); });
+
+        std::error_code existsError;
+        if(!fs::is_regular_file(pair.second.exePath, existsError)){
+            continue;
+        }
+        if(isJunkExecutable(appPath, fileName)){
+            continue;
+        }
 
         AppInfo tempApp = pair.second;
         tempApp.id = appPath;

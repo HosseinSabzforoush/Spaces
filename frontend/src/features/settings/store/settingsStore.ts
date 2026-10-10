@@ -4,6 +4,7 @@ import { startupApi } from '@/native';
 import { toast } from '@/stores/toastStore';
 
 interface SettingsValues {
+  rescanOnStartup: boolean;
   startupWorkspaceEnabled: boolean;
   startupWorkspaceId: string | null;
   confirmBeforeRemove: boolean;
@@ -21,6 +22,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
       startWithWindows: false,
+      rescanOnStartup: true,
       startupWorkspaceEnabled: false,
       startupWorkspaceId: null,
       confirmBeforeRemove: true,
@@ -29,6 +31,9 @@ export const useSettingsStore = create<SettingsState>()(
       hydrate: async () => {
         const enabled = await startupApi.isEnabled().catch(() => false);
         set({ startWithWindows: enabled });
+
+        const stored = await startupApi.getSettings().catch(() => null);
+        if (stored) set(stored);
       },
 
       setStartWithWindows: async (enabled) => {
@@ -42,11 +47,17 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
 
-      update: (key, value) => set({ [key]: value } as Pick<SettingsValues, typeof key>),
+      update: (key, value) => {
+        set({ [key]: value } as Pick<SettingsValues, typeof key>);
+        if (key === 'rescanOnStartup' || key === 'startupWorkspaceEnabled' || key === 'startupWorkspaceId') {
+          startupApi.saveSettings({ [key]: value }).catch(() => toast.error('Could not save that setting.'));
+        }
+      },
     }),
     {
       name: 'wm.settings',
       partialize: (s) => ({
+        rescanOnStartup: s.rescanOnStartup,
         startupWorkspaceEnabled: s.startupWorkspaceEnabled,
         startupWorkspaceId: s.startupWorkspaceId,
         confirmBeforeRemove: s.confirmBeforeRemove,

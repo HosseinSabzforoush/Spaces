@@ -36,6 +36,7 @@ add_executable(Spaces WIN32
     src/win32/GuidGenerator.cpp
     src/win32/IconExtractor.cpp
     src/win32/StartupRegistration.cpp
+    src/win32/FileDialog.cpp
 
     src/core/AppDiscoveryService.cpp
     src/core/WorkspaceManager.cpp
@@ -59,7 +60,7 @@ if(SPACES_DEV_SERVER)
     target_compile_definitions(Spaces PRIVATE SPACES_DEV_SERVER)
 endif()
 
-target_link_libraries(Spaces PRIVATE webview::core advapi32 ole32 shell32 windowscodecs uuid)
+target_link_libraries(Spaces PRIVATE webview::core advapi32 ole32 shell32 windowscodecs uuid comdlg32)
 
 target_link_options(Spaces PRIVATE -municode -static-libgcc -static-libstdc++ -static -lpthread)
 
