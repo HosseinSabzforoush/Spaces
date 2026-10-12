@@ -19,6 +19,7 @@ interface AppLibraryState {
   status: Status;
   error: string | null;
   load: () => Promise<void>;
+  rescan: () => Promise<void>;
   addMany: (entries: SelectedExecutable[]) => AddResult;
   remove: (id: string) => void;
 }
@@ -44,6 +45,11 @@ export const useAppLibraryStore = create<AppLibraryState>((set, get) => {
       } catch (e) {
         set({ status: 'error', error: e instanceof Error ? e.message : 'Unable to load your apps.' });
       }
+    },
+
+    rescan: async () => {
+      const apps = await appLibraryApi.list();
+      set({ apps });
     },
 
     addMany: (entries) => {

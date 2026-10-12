@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AppWindow, FolderSearch, LayoutGrid, List, SearchX } from 'lucide-react'
+import { AppWindow, LayoutGrid, List, RotateCw, SearchX } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import EmptyState from '@/components/ui/EmptyState'
@@ -11,7 +11,6 @@ import Skeleton from '@/components/ui/Skeleton'
 import AddToWorkspaceDialog from '@/features/library/components/AddToWorkspaceDialog'
 import AppDropZone from '@/features/library/components/AppDropZone'
 import LibraryAppCard from '@/features/library/components/LibraryAppCard'
-import ScanFolderPanel from '@/features/library/components/ScanFolderPanel'
 import { useLibraryUsage } from '@/features/library/hooks/useLibraryUsage'
 import { useAppLibraryStore } from '@/features/library/store/appLibraryStore'
 import type { LibraryApp, LibraryFilter, LibrarySort } from '@/features/library/types'
@@ -46,6 +45,7 @@ function AppsPage() {
   const load = useAppLibraryStore((s) => s.load)
   const addMany = useAppLibraryStore((s) => s.addMany)
   const remove = useAppLibraryStore((s) => s.remove)
+  const rescan = useAppLibraryStore((s) => s.rescan)
   const usage = useLibraryUsage()
 
   const [query, setQuery] = useState('')
@@ -54,6 +54,7 @@ function AppsPage() {
   const [layout, setLayout] = useState<'list' | 'grid'>('list')
   const [pendingRemove, setPendingRemove] = useState<LibraryApp | null>(null)
   const [addingTo, setAddingTo] = useState<LibraryApp | null>(null)
+  const [rescanning, setRescanning] = useState(false)
   const removing = useRetained(pendingRemove)
 
   const existingPaths = useMemo(() => new Set(apps.map((a) => pathKey(a.executablePath))), [apps])
@@ -92,6 +93,22 @@ function AppsPage() {
     }
   }
 
+  const handleRescan = async () => {
+    if (rescanning) return
+    setRescanning(true)
+    const before = new Set(existingPaths)
+    try {
+      await rescan()
+      const after = useAppLibraryStore.getState().apps
+      const added = after.filter((a) => !before.has(pathKey(a.executablePath))).length
+      toast.success(added > 0 ? `Found ${pluralize(added, 'new app')}` : 'Your library is up to date')
+    } catch {
+      toast.error("Couldn't rescan your apps")
+    } finally {
+      setRescanning(false)
+    }
+  }
+
   const confirmRemove = () => {
     if (pendingRemove) {
       remove(pendingRemove.id)
@@ -112,7 +129,7 @@ function AppsPage() {
         <EmptyState
           icon={AppWindow}
           title='No apps in your library yet'
-          description='Drop an .exe above, browse for one, or scan a folder.'
+          description='Drop an .exe above, browse for one, or click Rescan.'
         />
       )
     }
@@ -156,7 +173,16 @@ function AppsPage() {
       <PageHeader
         title='Apps'
         subtitle={ready && apps.length > 0 ? `${pluralize(apps.length, 'app')} · ${usedCount} in a workspace` : undefined}
-        actions={ready && apps.length > 0 ? <SearchField value={query} onChange={setQuery} placeholder='Search apps' className='sm:w-72' /> : undefined}
+        actions={
+          ready ? (
+            <div className='flex items-center gap-2'>
+              {apps.length > 0 && <SearchField value={query} onChange={setQuery} placeholder='Search apps' className='sm:w-72' />}
+              <Button icon={<RotateCw size={16} />} loading={rescanning} onClick={() => void handleRescan()}>
+                Rescan
+              </Button>
+            </div>
+          ) : undefined
+        }
       />
 
       <div className='@container custom-scrollbar -mx-1 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1'>
@@ -166,21 +192,7 @@ function AppsPage() {
               <h2 id='add-apps' className='text-base font-semibold'>Add apps</h2>
               <p className='text-xs text-text-muted'>Saved locations are remembered, so you can reuse them in any workspace.</p>
             </div>
-            <div className='grid grid-cols-1 gap-4 @3xl:grid-cols-2'>
-              <AppDropZone onFiles={handleAdd} />
-              <div className='flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-5'>
-                <div className='flex items-center gap-3'>
-                  <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-card-active text-text-secondary'>
-                    <FolderSearch size={18} />
-                  </span>
-                  <div className='min-w-0'>
-                    <h3 className='text-sm font-semibold'>Scan a folder</h3>
-                    <p className='text-xs text-text-muted'>Find every .exe inside a folder at once.</p>
-                  </div>
-                </div>
-                <ScanFolderPanel actionLabel='Add to library' existingPaths={existingPaths} onAdd={handleAdd} />
-              </div>
-            </div>
+            <AppDropZone onFiles={handleAdd} />
           </section>
 
           <section aria-labelledby='library' className='flex flex-col gap-3'>
