@@ -2,6 +2,21 @@
 
 #include <windows.h>
 #include <commdlg.h>
+#include <shobjidl.h>
+
+namespace {
+
+template <typename T>
+struct ComRelease {
+    T* ptr = nullptr;
+    ~ComRelease() {
+        if (ptr != nullptr) {
+            ptr->Release();
+        }
+    }
+};
+
+}
 
 namespace FileDialog {
 
@@ -39,6 +54,42 @@ std::vector<std::wstring> pickExecutables() {
         next += name.size() + 1;
     }
     return paths;
+}
+
+
+std::wstring pickDirectory() {
+    ComRelease<IFileOpenDialog> dialog;
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                IID_IFileOpenDialog,
+                                reinterpret_cast<void**>(&dialog.ptr)))) {
+        return {};
+    }
+
+    DWORD options = 0;
+    if (FAILED(dialog.ptr->GetOptions(&options))) {
+        return {};
+    }
+    dialog.ptr->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM |
+                           FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR);
+    dialog.ptr->SetTitle(L"Choose a folder");
+
+    if (FAILED(dialog.ptr->Show(GetActiveWindow()))) {
+        return {};  
+    }
+
+    ComRelease<IShellItem> item;
+    if (FAILED(dialog.ptr->GetResult(&item.ptr))) {
+        return {};
+    }
+
+    PWSTR rawPath = nullptr;
+    if (FAILED(item.ptr->GetDisplayName(SIGDN_FILESYSPATH, &rawPath)) || rawPath == nullptr) {
+        return {};
+    }
+
+    std::wstring path(rawPath);
+    CoTaskMemFree(rawPath);
+    return path;
 }
 
 }

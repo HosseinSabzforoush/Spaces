@@ -14,7 +14,7 @@ import { pathKey } from '@/utils/paths';
 import { useAppLibraryStore } from '../store/appLibraryStore';
 import type { LibraryApp } from '../types';
 import { toNewApplication } from '../utils/toNewApplication';
-import AppDropZone from './AppDropZone';
+import AppBrowsePanel from './AppBrowsePanel';
 import ExecutableRow from './ExecutableRow';
 import ScanFolderPanel from './ScanFolderPanel';
 
@@ -22,7 +22,7 @@ type TabId = 'library' | 'browse' | 'scan';
 
 const TABS: TabItem<TabId>[] = [
   { id: 'library', label: 'My apps', icon: Library },
-  { id: 'browse', label: 'Browse or drop', icon: Upload },
+  { id: 'browse', label: 'Browse', icon: Upload },
   { id: 'scan', label: 'Scan folder', icon: FolderSearch },
 ];
 
@@ -99,7 +99,7 @@ function AddAppContent({ existingPaths, onAdd, onClose }: Omit<AddAppDialogProps
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <p className="text-sm text-text-muted">Your library is empty. Add your first apps to get started.</p>
                 <div className="flex flex-wrap justify-center gap-2">
-                  <Button size="sm" icon={<Upload size={14} />} onClick={() => setTab('browse')}>Browse or drop</Button>
+                  <Button size="sm" icon={<Upload size={14} />} onClick={() => setTab('browse')}>Browse for apps</Button>
                   <Button size="sm" icon={<FolderSearch size={14} />} onClick={() => setTab('scan')}>Scan a folder</Button>
                 </div>
               </div>
@@ -130,7 +130,7 @@ function AddAppContent({ existingPaths, onAdd, onClose }: Omit<AddAppDialogProps
           </>
         )}
 
-        {tab === 'browse' && <AppDropZone onFiles={addEntries} className="min-h-56" />}
+        {tab === 'browse' && <AppBrowsePanel onFiles={addEntries} className="min-h-56" />}
 
         {tab === 'scan' && <ScanFolderPanel actionLabel="Add to workspace" existingPaths={existingPaths} existingLabel="In workspace" onAdd={addEntries} />}
       </div>

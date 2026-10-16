@@ -15,6 +15,8 @@ interface BackendApp {
 interface BackendWorkspace {
   id: string;
   displayName: string;
+  icon?: string;
+  accentColor?: string;
   apps: { appId: string }[];
 }
 
@@ -36,6 +38,8 @@ async function rpc<T>(name: string, ...args: unknown[]): Promise<T> {
 }
 
 const appIdOf = (path: string) => path.trim().toLowerCase();
+
+const DEFAULT_ACCENT = '#3b82f6';
 
 
 let queue: Promise<unknown> = Promise.resolve();
@@ -111,8 +115,8 @@ async function workspaceList(): Promise<Workspace[]> {
         id: w.id,
         title: w.displayName,
         description: '',
-        icon: '',
-        accentColor: '#3b82f6',
+        icon: w.icon ?? '',
+        accentColor: w.accentColor || DEFAULT_ACCENT,
         behavior: { launchOnStartup: false, minimizeOthers: false, closeOnExit: false },
         workingDirectory: '',
         envVars: [],
@@ -137,6 +141,8 @@ function workspaceSaveAll(workspaces: Workspace[]): Promise<void> {
       await rpc('saveWorkspace', {
         id: w.id,
         displayName: w.title,
+        icon: w.icon,
+        accentColor: w.accentColor,
         apps: w.apps.filter((a) => a.executablePath.trim()).map((a) => ({ appId: appIdOf(a.executablePath) })),
       });
     }
@@ -182,6 +188,15 @@ function failureMessage(status: BackendOutcome['status']): string {
   return 'Could not start the app.';
 }
 
+async function selectDirectory(): Promise<string | null> {
+  return (await rpc<string | null>('selectDirectory')) ?? null;
+}
+
+async function scanForExecutables({ directory, recursive }: { directory: string; recursive: boolean }): Promise<SelectedExecutable[]> {
+  const paths = await rpc<string[]>('scanExecutables', { directory, recursive });
+  return paths.map((path) => ({ name: appNameFromPath(path), executablePath: path }));
+}
+
 async function selectExecutables(): Promise<SelectedExecutable[]> {
   const paths = await rpc<string[]>('selectExecutables');
   if (paths.length === 0) return [];
@@ -222,9 +237,8 @@ export const handlers: Record<string, Handler> = {
     });
   },
   'fileSystem.selectExecutables': selectExecutables,
-  'fileSystem.resolveDroppedFiles': selectExecutables,
-  'fileSystem.selectDirectory': async () => null,
-  'fileSystem.scanForExecutables': async () => [],
+  'fileSystem.selectDirectory': selectDirectory,
+  'fileSystem.scanForExecutables': scanForExecutables,
   'startup.isEnabled': async () => (await rpc<{ runAtStartup: boolean }>('getSettings')).runAtStartup,
   'startup.setEnabled': async ({ enabled }: { enabled: boolean }) => {
     await rpc('saveSettings', { runAtStartup: enabled });

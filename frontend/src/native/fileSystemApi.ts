@@ -17,9 +17,6 @@ export const fileSystemApi = {
   selectExecutables(): Promise<SelectedExecutable[]> {
     return callNative('fileSystem.selectExecutables', undefined, mockSelectExecutables);
   },
-  resolveDroppedFiles(files: File[]): Promise<SelectedExecutable[]> {
-    return callNative('fileSystem.resolveDroppedFiles', files.map((f) => f.name), () => toEntries(files));
-  },
   selectDirectory(): Promise<string | null> {
     return callNative('fileSystem.selectDirectory', undefined, async () => {
       await delay(200);

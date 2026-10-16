@@ -9,7 +9,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import SearchField from '@/components/ui/SearchField'
 import Skeleton from '@/components/ui/Skeleton'
 import AddToWorkspaceDialog from '@/features/library/components/AddToWorkspaceDialog'
-import AppDropZone from '@/features/library/components/AppDropZone'
+import AppBrowsePanel from '@/features/library/components/AppBrowsePanel'
 import LibraryAppCard from '@/features/library/components/LibraryAppCard'
 import ScanFolderPanel from '@/features/library/components/ScanFolderPanel'
 import { useLibraryUsage } from '@/features/library/hooks/useLibraryUsage'
@@ -112,7 +112,7 @@ function AppsPage() {
         <EmptyState
           icon={AppWindow}
           title='No apps in your library yet'
-          description='Drop an .exe above, browse for one, or scan a folder.'
+          description='Browse for an .exe or scan a folder.'
         />
       )
     }
@@ -167,7 +167,7 @@ function AppsPage() {
               <p className='text-xs text-text-muted'>Saved locations are remembered, so you can reuse them in any workspace.</p>
             </div>
             <div className='grid grid-cols-1 gap-4 @3xl:grid-cols-2'>
-              <AppDropZone onFiles={handleAdd} />
+              <AppBrowsePanel onFiles={handleAdd} />
               <div className='flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-5'>
                 <div className='flex items-center gap-3'>
                   <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-card-active text-text-secondary'>

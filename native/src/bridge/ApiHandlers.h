@@ -31,6 +31,8 @@ private:
     std::string addManualApp(const std::string& request);
     std::string getAppIcon(const std::string& request);
     std::string selectExecutables(const std::string& request);
+    std::string selectDirectory(const std::string& request);
+    std::string scanExecutables(const std::string& request);
     std::string getSettings(const std::string& request);
     std::string saveSettings(const std::string& request);
 

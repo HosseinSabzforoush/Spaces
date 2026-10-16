@@ -15,6 +15,7 @@
 #include "../core/AppDiscoveryService.h"
 #include "../core/AppInfo.h"
 #include "../core/AppSettings.h"
+#include "../core/ExecutableScanner.h"
 #include "../core/Workspace.h"
 #include "../core/WorkspaceManager.h"
 #include "../storage/AppCacheRepository.h"
@@ -146,6 +147,12 @@ void ApiHandlers::registerAll(webview::webview& view) {
     });
     view.bind("selectExecutables", [this](std::string request) {
         return selectExecutables(request);
+    });
+    view.bind("selectDirectory", [this](std::string request) {
+        return selectDirectory(request);
+    });
+    view.bind("scanExecutables", [this](std::string request) {
+        return scanExecutables(request);
     });
     view.bind("getSettings", [this](std::string request) {
         return getSettings(request);
@@ -342,6 +349,41 @@ std::string ApiHandlers::getAppIcon(const std::string& request) {
 std::string ApiHandlers::selectExecutables(const std::string&) {
     nlohmann::json paths = nlohmann::json::array();
     for (const std::wstring& path : FileDialog::pickExecutables()) {
+        paths.push_back(StringConvert::toUtf8(path));
+    }
+    return ok(paths);
+}
+
+std::string ApiHandlers::selectDirectory(const std::string&) {
+    const std::wstring directory = FileDialog::pickDirectory();
+    if (directory.empty()) {
+        return ok(nullptr);  
+    }
+    return ok(StringConvert::toUtf8(directory));
+}
+
+std::string ApiHandlers::scanExecutables(const std::string& request) {
+    const nlohmann::json args = parseArgs(request);
+    if (args.empty() || !args.at(0).is_object()) {
+        return fail("badRequest");
+    }
+
+    const nlohmann::json& options = args.at(0);
+    if (!options.contains("directory") || !options.at("directory").is_string()) {
+        return fail("badRequest");
+    }
+    const std::string directory = options.at("directory").get<std::string>();
+    if (directory.empty()) {
+        return fail("badRequest");
+    }
+
+    bool recursive = true;
+    if (options.contains("recursive") && options.at("recursive").is_boolean()) {
+        recursive = options.at("recursive").get<bool>();
+    }
+
+    nlohmann::json paths = nlohmann::json::array();
+    for (const std::wstring& path : ExecutableScanner::scan(StringConvert::fromUtf8(directory), recursive)) {
         paths.push_back(StringConvert::toUtf8(path));
     }
     return ok(paths);

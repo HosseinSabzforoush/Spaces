@@ -16,6 +16,8 @@ omitted, never written as `null`.
     {
       "id": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
       "displayName": "Work",
+      "icon": "code",
+      "accentColor": "#3b82f6",
       "apps": [
         { "appId": "c:\\program files\\microsoft vs code\\code.exe" }
       ]
@@ -23,6 +25,10 @@ omitted, never written as `null`.
   ]
 }
 ```
+
+`icon` (an icon id from the UI's picker) and `accentColor` (a CSS hex colour)
+are optional. Files written before they existed simply lack them, and the
+frontend falls back to its defaults.
 
 `apps` entries are objects, not bare strings, so per-app fields can be added
 later without migrating existing files.
@@ -70,6 +76,8 @@ Every function is on `window`, returns a Promise resolving to a JSON string.
 | `getDiscoveredApps()` | — | array of AppInfo |
 | `rescanApps()` | — | array of AppInfo (the new cache) |
 | `addManualApp(app)` | `{ displayName?, exePath, args?, workingDir? }` | the saved AppInfo |
+| `selectDirectory()` | — | the chosen folder path, or `null` if cancelled |
+| `scanExecutables(opts)` | `{ directory, recursive? }` | array of `.exe` paths (capped, depth-limited) |
 
 ### Launch outcomes
 

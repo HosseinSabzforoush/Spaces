@@ -5,8 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
-# OFF (default): the app loads the built frontend from the "dist" folder next to the exe.
-# ON: the app loads http://localhost:5173 (run `npm run dev` yourself) for hot reload.
+
 option(SPACES_DEV_SERVER "Load the frontend from the Vite dev server instead of dist" OFF)
 
 include(FetchContent)
@@ -39,6 +38,7 @@ add_executable(Spaces WIN32
     src/win32/FileDialog.cpp
 
     src/core/AppDiscoveryService.cpp
+    src/core/ExecutableScanner.cpp
     src/core/WorkspaceManager.cpp
 
     src/storage/JsonStore.cpp
@@ -53,7 +53,7 @@ add_executable(Spaces WIN32
 
 target_include_directories(Spaces PRIVATE third_party resources)
 
-# Rebuild the resource file when the icon changes.
+
 set_source_files_properties(resources/spaces.rc PROPERTIES OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/spaces.ico")
 
 if(SPACES_DEV_SERVER)
@@ -64,7 +64,7 @@ target_link_libraries(Spaces PRIVATE webview::core advapi32 ole32 shell32 window
 
 target_link_options(Spaces PRIVATE -municode -static-libgcc -static-libstdc++ -static -lpthread)
 
-# After each build, copy frontend/dist next to the exe (build/bin/dist).
+
 add_custom_command(TARGET Spaces POST_BUILD
     COMMAND ${CMAKE_COMMAND}
             -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/../frontend/dist

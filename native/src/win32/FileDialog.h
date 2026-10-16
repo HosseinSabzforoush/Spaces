@@ -7,4 +7,6 @@ namespace FileDialog {
 
 std::vector<std::wstring> pickExecutables();
 
+std::wstring pickDirectory();
+
 }

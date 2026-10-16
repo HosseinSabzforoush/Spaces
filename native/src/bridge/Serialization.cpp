@@ -153,6 +153,13 @@ nlohmann::json toJson(const Workspace& workspace) {
     node["displayName"] = StringConvert::toUtf8(workspace.displayName);
     node["apps"]        = std::move(apps);
 
+    if (!workspace.icon.empty()) {
+        node["icon"] = StringConvert::toUtf8(workspace.icon);
+    }
+    if (!workspace.accentColor.empty()) {
+        node["accentColor"] = StringConvert::toUtf8(workspace.accentColor);
+    }
+
     return node;
 }
 
@@ -169,6 +176,9 @@ bool fromJson(const nlohmann::json& node, Workspace& out) {
     if (!readWide(node, "displayName", workspace.displayName)) {
         return false;
     }
+
+    readWide(node, "icon",        workspace.icon);
+    readWide(node, "accentColor", workspace.accentColor);
 
     if (node.contains("apps") && node.at("apps").is_array()) {
         for (const nlohmann::json& child : node.at("apps")) {
